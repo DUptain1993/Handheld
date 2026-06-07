@@ -1,0 +1,139 @@
+PROJECT: Handheld Cyberdeck (Hybrid Pi + ESP32 + Edge AI)
+
+CORE OBJECTIVE:
+Build a portable, modular cyberdeck using a Raspberry Pi Zero W, ESP32-32E (UI controller), and ESP32-S3-WROOM-1U (edge AI node), integrating touchscreen controls, wireless tools, and local intelligent processing.
+
+---
+
+PRIMARY SYSTEM COMPONENTS:
+
+1. ESP32-32E (UI CONTROLLER)
+2. ESP32-S3-WROOM-1U (EDGE AI PROCESSOR)
+3. Raspberry Pi Zero W (BACKEND SYSTEM)
+
+---
+
+PRIMARY GOALS:
+
+1. DISPLAY + TOUCH INTERFACE (ESP32-32E)
+- Drive 3.5" TFT display (320x480 SPI)
+- Enable resistive touchscreen input
+- Build fast, stable UI (menu-based)
+- Avoid heavy rendering or slow frameworks
+
+---
+
+2. USER INTERFACE (PHASE 1)
+- Implement touchscreen menu system:
+  [ WiFi Tools ]
+  [ Payloads ]
+  [ AI Tools ]
+  [ System Info ]
+- Touch-based navigation
+- Clear visual feedback
+
+---
+
+3. COMMUNICATION ARCHITECTURE
+
+A. ESP32-32E → Raspberry Pi
+- Primary: WiFi HTTP requests
+- Backup: UART serial commands
+
+B. ESP32-32E → ESP32-S3
+- UART communication (preferred)
+- Optional: ESP-NOW or WiFi
+
+C. ESP32-S3 → Raspberry Pi
+- Optional direct communication
+- Used for advanced processing relay
+
+---
+
+4. RASPBERRY PI INTEGRATION
+- Use P4wnP1 ALOA as backend
+- Store payloads/scripts
+- Execute wireless tools and automation
+- Respond to commands from ESP32 UI
+
+---
+
+5. EDGE AI PROCESSING (ESP32-S3)
+
+- Offload lightweight AI tasks from Pi
+- Potential functions:
+  - Signal classification (basic RF patterns)
+  - Input parsing / command filtering
+  - Menu prediction / smart suggestions
+  - Lightweight anomaly detection
+
+- Must remain efficient (ESP32-S3 constraints)
+
+---
+
+6. MODULAR RADIO SUPPORT
+
+Support swappable modules:
+- nRF24L01 → 2.4GHz RF
+- CC1101 → sub-GHz
+- ESP8266 → WiFi experiments
+
+Conditions:
+- Only one module active at a time
+- Use GPIO/SPI connections
+- Avoid power conflicts
+
+---
+
+7. POWER MANAGEMENT
+
+- Stable 5V for Raspberry Pi
+- Stable 3.3V for ESP32 + RF modules
+- Avoid direct Li-ion usage without regulation
+- Prevent brownouts during WiFi transmission
+
+---
+
+8. ENCLOSURE INTEGRATION
+
+- Use modified 3.5” plastic case
+- Mount display to lid
+- Stack internals:
+  - Top: screen + UI ESP32
+  - Middle: Pi + ESP32-S3
+  - Bottom: battery + storage
+- Provide access ports:
+  - USB
+  - antenna
+  - expansion slot
+
+---
+
+SECONDARY GOALS (PHASE 2+):
+
+- Improve UI rendering (icons, animations)
+- Integrate AI-assisted suggestions into UI
+- Add logging + data export
+- Implement module auto-detection
+- Create dynamic system status dashboard
+
+---
+
+CONSTRAINTS:
+
+- No PCB or breadboard
+- Direct wiring (hand-soldered)
+- Limited power regulation hardware
+- Mixed architecture (Pi + multiple ESP boards)
+
+---
+
+SUCCESS CRITERIA:
+
+- Display + touch fully functional
+- ESP32 UI reliably communicates with Pi
+- ESP32 communicates with ESP32-S3
+- At least one working command round-trip
+- Stable runtime without crashes or resets
+- AI node executes at least one functional task
+
