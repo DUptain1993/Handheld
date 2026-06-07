@@ -1,0 +1,17 @@
+<link rel="stylesheet" type="text/css" media="screen" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css" />
+<script type="text/ecmascript" src="https://code.jquery.com/jquery-3.5.1.js"></script>
+<script type="text/ecmascript" src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('#pretty').DataTable({
+        order: [[0, 'asc']],
+        "lengthChange": false,
+        "paging": false,
+      },
+      columnDefs: [{
+        target: 6,
+        type: 'num',
+        }],
+    );
+  });
+  </script>

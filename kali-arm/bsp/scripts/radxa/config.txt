@@ -1,0 +1,32 @@
+# Execute "update_extlinux.sh" after changing file /boot/config.txt.
+
+#
+# kernel command line: started with "cmdline:"
+#
+
+# For console
+cmdline: console=ttyAML0,115200 console=tty1 console=both console=blank consoleblank=0 loglevel=0
+
+# For rootfs
+cmdline: panic=10 rootwait ro rootfstype=ext4
+
+# Docker optimizations
+cmdline: cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory swapaccount=1
+
+cmdline: switolb=1
+cmdline: coherent_pool=2M
+
+
+#
+# dt overlay line: starts with "dtoverlay=". One dt overlay per line
+# do not include the .dtbo extension
+#
+
+# To enable the 2GHz overclock, you need to echo 1 into
+# /sys/devices/system/cpu/cpufreq/boost
+dtoverlay=meson-g12a-opp-2ghz
+
+# For 1.51+ Radxa Zero boards, the user LED is on GPIO 10.
+dtoverlay=meson-g12a-gpio-10-led
+# For earlier it is on GPIO 8.
+#dtoverlay=meson-g12a-gpio-8-led

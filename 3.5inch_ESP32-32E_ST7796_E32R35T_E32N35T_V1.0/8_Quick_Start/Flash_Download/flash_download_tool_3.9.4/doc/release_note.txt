@@ -1,0 +1,13 @@
+3.9.4：
+1.support esp32-c6
+2.support esp32-c3/esp32-s3 flash encrytion
+3.add xmc flash fix
+4.support dut count in factory mode
+
+3.9.3:
+1.support esp32-c2
+2.update finish UI show
+
+3.9.2:
+1.fix configure file error
+2.update autostart process

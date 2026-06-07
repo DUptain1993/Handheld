@@ -1,0 +1,195 @@
+#pragma once
+#include "../utilities.h"
+#include "FS.h"
+#include "SPIFFS.h"
+
+/**----------------------------- WS2812 ----------------------------------**/
+#include <FastLED.h>
+#define WS2812_DEFAULT_LIGHT 15
+extern TaskHandle_t ws2812_handle;
+
+void ws2812_init(void);
+void ws2812_set_color(CRGB c);
+void ws2812_set_light(uint8_t light);
+void ws2812_set_mode(int m);
+int ws2812_get_mode(void);
+void ws2812_task(void *param);
+void ws2812_pos_demo(int pos);
+void ws2812_pos_demo1(void);
+/**------------------------------- NFC -----------------------------------**/
+// PN532
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_PN532.h>
+
+#define NFC_UID_MAX_LEN 7
+
+#define NFC_EVENT_WAIT 0
+#define NFC_EVENT_PASS 1
+#define NFC_EVENT_FAIL 2
+
+typedef struct {
+    uint32_t scan_count;
+    uint32_t unique_count;
+    uint32_t last_tick_ms;
+    uint32_t update_seq;
+    uint32_t version_data;
+    uint8_t last_uid[NFC_UID_MAX_LEN];
+    uint8_t last_uid_len;
+    int last_event;
+    bool init_flag;
+} nfc_status_t;
+
+extern TaskHandle_t nfc_handle;
+void nfc_init(void);
+bool nfc_is_init(void);
+uint32_t nfc_get_ver_data(void);
+void nfc_get_status(nfc_status_t *status);
+void nfc_task(void *param);
+
+/**------------------------------ LORA -----------------------------------**/
+// CC1101
+#include <RadioLib.h>
+
+#define LORA_MODE_SEND 1
+#define LORA_MODE_RECV 2
+
+extern TaskHandle_t lora_handle;
+extern SemaphoreHandle_t radioLock;
+extern CC1101 radio;
+
+void lora_init(void);
+void lora_mode_sw(int m);
+int lora_get_mode(void);
+bool lora_is_init(void);
+void lora_send(const char *str);
+void lora_task(void *param);
+
+/**------------------------------ NRF24 -----------------------------------**/
+// NRF24
+#define NRF24_MODE_SEND 0
+#define NRF24_MODE_RECV 1
+
+#define NRF24_EVENT_IDLE        0
+#define NRF24_EVENT_MODE_CHANGE 1
+#define NRF24_EVENT_TX          2
+#define NRF24_EVENT_RX          3
+#define NRF24_EVENT_ERROR       4
+
+#define NRF24_STATUS_PAYLOAD_MAX_LEN 32
+
+typedef struct {
+    uint32_t tx_count;
+    uint32_t rx_count;
+    uint32_t last_tick_ms;
+    uint32_t update_seq;
+    int mode;
+    int last_event;
+    int last_code;
+    bool init_flag;
+    char last_payload[NRF24_STATUS_PAYLOAD_MAX_LEN + 1];
+} nrf24_status_t;
+
+extern TaskHandle_t nrf24_handle;
+
+void nrf24_init(void);
+bool nrf24_is_init();
+int nrf24_get_mode(void);
+void nrf24_set_mode(int mode);
+void nrf24_task(void *param);
+void nrf24_send(const char *str);
+void nrf24_get_status(nrf24_status_t *status);
+
+/**---------------------------- BLE UART ----------------------------------**/
+#define BLE_UART_STATUS_ADDRESS_MAX_LEN 18
+#define BLE_UART_STATUS_PAYLOAD_MAX_LEN 64
+
+enum {
+    BLE_UART_EVENT_IDLE = 0,
+    BLE_UART_EVENT_ADVERTISING,
+    BLE_UART_EVENT_PAIRING,
+    BLE_UART_EVENT_BONDED,
+    BLE_UART_EVENT_CONNECTED,
+    BLE_UART_EVENT_DISCONNECTED,
+    BLE_UART_EVENT_AUTH_FAILED,
+    BLE_UART_EVENT_CLEARING_BONDS,
+};
+
+typedef struct {
+    uint32_t last_tick_ms;
+    uint32_t update_seq;
+    uint32_t passkey;
+    uint32_t rx_count;
+    uint32_t tx_count;
+    uint8_t bond_count;
+    int last_event;
+    bool init_flag;
+    bool connected;
+    bool advertising;
+    bool auth_in_progress;
+    bool bonded;
+    char local_address[BLE_UART_STATUS_ADDRESS_MAX_LEN];
+    char peer_address[BLE_UART_STATUS_ADDRESS_MAX_LEN];
+    char last_payload[BLE_UART_STATUS_PAYLOAD_MAX_LEN + 1];
+} ble_uart_status_t;
+
+void ble_uart_init(void);
+void ble_uart_service(void);
+bool ble_uart_is_init(void);
+bool ble_uart_clear_bonds(void);
+void ble_uart_get_status(ble_uart_status_t *status);
+
+/**---------------------------- BATTERY ----------------------------------**/
+#define XPOWERS_CHIP_BQ25896
+#include "XPowersLib.h"
+
+extern TaskHandle_t battery_handle;
+extern XPowersPPM PPM;
+void ppm_set_recovery_enabled(bool enabled);
+void battery_task(void *param);
+
+#include "bq27220.h"
+extern BQ27220 bq27220;
+
+/**------------------------------ MIC ------------------------------------**/
+#define SAMPLE_SIZE         (20)
+#define EXAMPLE_I2S_CH      0        // I2S Channel Number
+
+void init_microphone(void);
+
+/**------------------------------- IR ------------------------------------**/
+#define IR_MODE_SEND 1
+#define IR_MODE_RECV 2
+// void infared_init();
+// uint16_t infared_get_cmd(void);
+// void infared_task(void *param);
+
+/**------------------------------- SD ------------------------------------**/
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
+extern bool sd_init_flag;
+void sd_init(void);
+bool sd_is_valid(void);
+uint32_t sd_get_sum_Mbyte(void);
+uint32_t sd_get_used_Mbyte(void);
+
+/**----------------------------- WIFI ------------------------------------**/
+#include <WiFi.h>
+#define WIFI_SSID_MAX_LEN 30
+#define WIFI_PSWD_MAX_LEN 30
+extern char wifi_ssid[WIFI_SSID_MAX_LEN];
+extern char wifi_password[WIFI_PSWD_MAX_LEN];
+extern bool wifi_is_connect;
+
+/**---------------------------- EEPROM -----------------------------------**/
+#include <EEPROM.h>
+#define EEPROM_UPDATA_FLAG_NUM   0xAA
+#define WIFI_SSID_EEPROM_ADDR    (1)
+#define WIFI_PSWD_EEPROM_ADDR    (WIFI_SSID_EEPROM_ADDR + WIFI_SSID_MAX_LEN)
+#define UI_THEME_EEPROM_ADDR     (WIFI_PSWD_EEPROM_ADDR + WIFI_PSWD_MAX_LEN)
+#define UI_ROTATION_EEPROM_ADDR  (UI_THEME_EEPROM_ADDR + 1)
+#define EEPROM_SIZE_MAX 128
+
+void eeprom_wr(int addr, uint8_t val);
+void eeprom_wr_wifi(const char *ssid, uint16_t ssid_len, const char *pwsd, uint16_t pwsd_len);

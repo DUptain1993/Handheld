@@ -1,0 +1,60 @@
+# REF: https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-kernels/-/blob/cf3ca7ae/.gitlab-ci.yml
+
+## Docker image: https://hub.docker.com/_/python
+image: docker.io/python:3.7
+
+stages:
+  - linting
+  - generate_documentation
+
+variables:
+  # Create a shallow git copy
+  GIT_DEPTH: 1
+
+.install_prerequesites_pip: &install_prerequesites_pip |
+  pip install -r .gitlab/requirements.txt
+
+.setup_for_html: &setup_for_html |
+  apt-get update
+  apt-get --yes --no-install-recommends install pandoc
+
+linting:
+  stage: linting
+  allow_failure: yes
+  rules:
+    - if: $CI_MERGE_REQUEST_ID                       # Execute jobs in merge request context
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH    # Execute jobs when a new commit is pushed to default branch
+  before_script:
+    - *install_prerequesites_pip
+  script:
+    - yamllint devices.yml
+
+pages:
+  stage: generate_documentation
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH    # Execute jobs when a new commit is pushed to default branch
+  before_script:
+    - *install_prerequesites_pip
+    - *setup_for_html
+  script:
+    - ./bin/generate_devices_stats.py
+    - ./bin/generate_devices_table.py
+    - ./bin/generate_images_overview.py
+    - ./bin/generate_images_stats.py
+    - ./bin/generate_images_table.py
+    - ./bin/generate_kernel_stats.py
+    - mkdir -pv ./public/
+    - cp -v ./.gitlab/404.html   ./public/
+    - cp -v ./.gitlab/public.css ./public/
+    - pandoc --standalone ./.gitlab/www.md    --css=public.css --include-in-header=./.gitlab/header.html --output=./public/index.html
+    - pandoc --standalone ./device-stats.md   --css=public.css --include-in-header=./.gitlab/header.html --output=./public/device-stats.html
+    - pandoc --standalone ./devices.md        --css=public.css --include-in-header=./.gitlab/header.html --output=./public/devices.html
+    - pandoc --standalone ./image-overview.md --css=public.css --include-in-header=./.gitlab/header.html --output=./public/image-overview.html
+    - pandoc --standalone ./image-stats.md    --css=public.css --include-in-header=./.gitlab/header.html --output=./public/image-stats.html
+    - pandoc --standalone ./images.md         --css=public.css --include-in-header=./.gitlab/header.html --output=./public/images.html
+    - pandoc --standalone ./kernel-stats.md   --css=public.css --include-in-header=./.gitlab/header.html --output=./public/kernel-stats.html
+    - find public/ -type f -name '*.html' | sort | while read -r x; do sed 's_<table>_<table id="pretty">_' "${x}" > /tmp/out; mv /tmp/out "${x}"; done
+  artifacts:
+    paths:
+      - ./public
+    expire_in: 1 week

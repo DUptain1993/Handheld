@@ -1,0 +1,15 @@
+#cloud-config
+# vim: syntax=yaml
+#
+
+hostname: kali-raspberrypi
+manage_etc_hosts: true
+
+users:
+  - default
+
+package_upgrade: false
+
+# TODO: Add additional packages we want to install at boot here
+#packages:
+# - ntp

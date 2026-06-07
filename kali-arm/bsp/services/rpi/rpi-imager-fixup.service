@@ -1,0 +1,13 @@
+[Unit]
+Description=Fixup for RPi Imager hardcoded shell and network renderer values
+Before=cloud-init-local.service sysinit.target
+DefaultDependencies=no
+RequiresMountsFor=/var/lib/cloud /boot/firmware
+
+[Service]
+Type=oneshot
+ExecStart=sh -c 'sed -i -e "s|/bin/bash|/usr/bin/zsh|g" /boot/firmware/user-data || true'
+ExecStart=sh -c 'sed -i -e "s|networkd|NetworkManager|g" /boot/firmware/network-config || true'
+
+[Install]
+WantedBy=basic.target

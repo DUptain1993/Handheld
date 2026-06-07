@@ -1,0 +1,137 @@
+name: Raspberry Pi Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        version: ["buster", "bullseye"]
+    runs-on: ubuntu-22.04
+    name: Build Nexmon driver for Raspberry Pi
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y curl gnupg2
+        sudo apt-get install -y gcc-arm-linux-gnueabihf crossbuild-essential-arm64 make
+        sudo curl -fsSL http://archive.raspberrypi.org/debian/raspberrypi.gpg.key --output /usr/share/keyrings/raspberrypi.gpg.key
+        echo "deb [arch=amd64, signed-by=/usr/share/keyrings/raspberrypi.gpg.key] http://archive.raspberrypi.org/debian/ ${{ matrix.version }} main" | sudo tee /etc/apt/sources.list.d/raspberrypi.list > /dev/null
+        sudo apt-get update
+        sudo apt-get install -y raspberrypi-kernel-headers
+    - name: Build Pi kernel drivers
+      id: build_raspberry
+      run: |
+        for kernel_folder in /lib/modules/*+; do
+          kver=$(basename "$kernel_folder")
+          brcmfmac_ver=brcmfmac_$(echo "$kver" | cut -f 1,2 -d .).y-nexmon
+          driver_base_path=patches/driver
+          [ ! -d "$driver_base_path"/"$brcmfmac_ver" ] && echo "Cannot find nexmon brcmfmac fo kernel $kver && continue"
+          if [[ $kver =~ "v8" ]]; then
+            target_arch="arm64"
+            cross="aarch64-linux-gnu-"
+          else
+            target_arch="arm"
+            cross="arm-linux-gnueabihf-"
+          fi
+          echo "Cross compiling" "$kver" "for arch" "$target_arch"
+          export NEXMON_ROOT="$(pwd)"
+          make ARCH=$target_arch CROSS_COMPILE="$cross" -j"$(nproc)" -C "$kernel_folder"/build M="$NEXMON_ROOT"/"$driver_base_path"/"$brcmfmac_ver" > log.txt && mkdir -p build/raspberrypi/"$kver"/ && cp "$driver_base_path"/"$brcmfmac_ver"/brcmfmac.ko build/raspberrypi/"$kver"/
+          echo kernel_ver="$(echo "$kver" | cut -f 1 -d -)" >> $GITHUB_OUTPUT
+        done
+    - name: Compress artifacts
+      run: |
+        tar czvf brcmfmac-raspberrypi-${{ steps.build_raspberry.outputs.kernel_ver }}.tar.gz -C build/raspberrypi/ .
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: RPi ${{ matrix.version }} kernel drivers
+        path: brcmfmac*.tar.gz
+
+
+  kalibuild:
+    runs-on: ubuntu-22.04
+    name: Build Nexmon driver for Raspberry Pi (re4son)
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y curl gnupg2
+        sudo apt-get install -y gcc-arm-linux-gnueabihf crossbuild-essential-arm64 make
+        sudo apt-get -y install qemu-system-arm qemu-user-static binfmt-support
+        curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x96d00b0c4b00fd5360cc087711764ee8ac24832f" | sudo gpg --dearmor -o /usr/share/keyrings/kali.gpg
+        echo "deb [arch=armel,armhf,arm64 signed-by=/usr/share/keyrings/kali.gpg] http://http.re4son-kernel.com/re4son/ kali-pi main" | sudo tee /etc/apt/sources.list.d/kali.list  > /dev/null
+        sudo sed -i -E 's/deb (http|mirror\+file)/deb [arch=amd64] \1/g' /etc/apt/sources.list
+    - name: Build re4son Pi kernel drivers
+      id: build_kali
+      run: |
+        for arch in "armel" "armhf" "arm64"; do
+          echo "Adding arch" "$arch"
+          sudo dpkg --add-architecture "$arch"
+          sudo apt-get update
+          sudo apt-get install -y kalipi-kernel-headers:"$arch"
+          for kernel_folder in /lib/modules/*Re4son*; do
+            kver=$(basename "$kernel_folder")
+            brcmfmac_ver=brcmfmac_$(echo "$kver" | cut -f 1,2 -d .).y-nexmon
+            driver_base_path=patches/driver
+            [ ! -d "$driver_base_path"/"$brcmfmac_ver" ] && echo "Cannot find nexmon brcmfmac fo kernel $kver && continue"
+            if [[ $kver =~ "v8" ]]; then
+              target_arch="arm64"
+              cross="aarch64-linux-gnu-"
+              sudo ln -fs /usr/aarch64-linux-gnu/lib/libc.so.6 /lib/libc.so.6
+              sudo ln -fs /usr/aarch64-linux-gnu/lib/ld-linux-aarch64.so.1 /lib/ld-linux-aarch64.so.1
+            else
+              target_arch="arm"
+              cross="arm-linux-gnueabihf-"
+              sudo ln -fs /usr/arm-linux-gnueabihf/lib/libc.so.6 /lib/libc.so.6
+              sudo ln -fs /usr/arm-linux-gnueabihf/lib/ld-linux-armhf.so.3 /lib/ld-linux-armhf.so.3
+              sudo ln -fs /usr/arm-linux-gnueabihf/lib/ld-linux.so.3 /lib/ld-linux.so.3
+            fi
+            echo "Cross compiling" "$kver" "for arch" "$target_arch"
+            export NEXMON_ROOT="$(pwd)"
+            make ARCH=$target_arch CROSS_COMPILE="$cross" -j"$(nproc)" -C "$kernel_folder"/build M="$NEXMON_ROOT"/"$driver_base_path"/"$brcmfmac_ver" > log.txt && mkdir -p build/kalipi/"$kver"/ && cp "$driver_base_path"/"$brcmfmac_ver"/brcmfmac.ko build/kalipi/"$kver"/
+            echo kernel_ver="$(echo "$kver" | cut -f 1 -d -)" >> $GITHUB_OUTPUT
+          done
+        done
+    - name: Compress artifacts
+      run: |
+        tar czvf brcmfmac-kalipi-${{ steps.build_kali.outputs.kernel_ver }}.tar.gz -C build/kalipi/ .
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: RPi re4son kernel drivers
+        path: brcmfmac*.tar.gz
+
+
+  fwbuild:
+    runs-on: ubuntu-22.04
+    name: Build Nexmon firmware for Raspberry Pi
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gawk qpdf adb flex libfl-dev bison make g++ gcc-arm-none-eabi libgmp3-dev xxd
+    - name: Build Pi firmware
+      id: build_fw
+      run: |
+        source setup_env.sh
+        make
+        for fw in "bcm43430a1/7_45_41_46" "bcm43455c0/7_45_206" "bcm43436b0/9_88_4_65" "bcm43439a0/7_95_49_2271bb6"; do
+          cd "$NEXMON_ROOT"/patches/"$fw"/nexmon
+          make
+          mkdir -p "$NEXMON_ROOT"/build/fw/"$fw"
+          cp ./*.bin "$NEXMON_ROOT"/build/fw/"$fw" || true
+          cp ./*.h "$NEXMON_ROOT"/build/fw/"$fw" || true
+        done
+    - name: Compress artifacts
+      run: |
+        tar czvf nexmon-pi.tar.gz -C build/fw/ .
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: RPi nexmon FW
+        path: nexmon-pi.tar.gz

@@ -1,0 +1,8 @@
+# Configure timeout to choose the kernel
+TIMEOUT="10"
+
+# Configure default kernel to boot: check all kernels in `/boot/extlinux/extlinux.conf`
+#DEFAULT="kernel-5.10"
+
+# Configure additional kernel configuration options
+APPEND="earlyprintk console=ttyS0,115200 console=tty1 console=both rootfstype=ext4 init=/sbin/init rootwait swiotlb=1 coherent_pool=1m"

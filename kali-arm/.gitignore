@@ -1,0 +1,17 @@
+# Folders
+base/*
+local/*
+logs/*
+images/*
+
+# Files
+builder.txt
+.DS_Store
+
+# GitLab pages
+public/
+
+# Generated documentation
+kernel*.md
+image*.md
+device*.md
